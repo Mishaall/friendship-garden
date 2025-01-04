@@ -180,17 +180,76 @@
             float: right;
             font-size: 20px;
         }
+        #loginSection {
+            width: 100%;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(39, 61, 23, 0.9);
+            z-index: 2000;
+        }
+
+        #loginContainer {
+            text-align: center;
+        }
+
+        #addFriendForm, #gardenControls, #garden {
+            display: none;
+        }
+
+        body.logged-in #loginSection {
+            height: auto;
+            position: relative;
+            background: none;
+        }
+
+        body.logged-in #addFriendForm,
+        body.logged-in #gardenControls,
+        body.logged-in #garden {
+            display: block;
+        }
+        #userInfo {
+            position: fixed;
+            bottom: 10px;  /* Moved up a bit */
+            right: 10px;   /* Moved in a bit */
+            display: flex;
+            align-items: center;
+            gap: 8px;      /* Reduced gap */
+            background-color: rgba(255, 237, 218, 0.9);
+            padding: 4px 8px; /* Reduced padding */
+            border-radius: 6px; /* Smaller radius */
+            font-size: 12px;   /* Smaller font size */
+        }
+
+        #loginButton, #logoutButton {
+            padding: 4px 8px;    /* Smaller padding */
+            font-size: 12px;     /* Smaller font */
+        }
+
+        #userEmail {
+            color: #273d17;
+            font-weight: bold;
+            font-size: 12px;     /* Smaller font size */
+        }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js" type="module"></script>
 </head>
 <body>
-    <div id="loginSection" style="text-align: center; margin: 20px;">
-        <button id="loginButton" style="display: none;">Login with Google</button>
-        <button id="logoutButton" style="display: none;">Logout</button>
-        <span id="userEmail" style="margin-left: 10px;"></span>
-    </div>    
+    <div id="loginSection">
+        <div id="loginContainer">
+            <button id="loginButton">Login with Google</button>
+        </div>
+        <div id="userInfo">
+            <span id="userEmail"></span>
+            <button id="logoutButton">Logout</button>
+        </div>
+    </div>   
     <form id="addFriendForm">
         <input type="text" id="friendName" placeholder="Friend's Name" required>
         <select id="maintenanceLevel" required>
@@ -226,16 +285,26 @@
     </div>
     <div id="garden"></div>
 
-    <script>
-            // Add Firebase initialization HERE, right at the start of your script tag
+    <script type="module">
+
+        // Import Firebase functions
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+        // Your Firebase configuration (keep your values)
         const firebaseConfig = {
-            // You'll fill this in with your Firebase config later
+            apiKey: "AIzaSyA6I8ihmCLd5IPhLL5OblErcSS9nZK1OUU",
+            authDomain: "friendship-garden-27973.firebaseapp.com",
+            projectId: "friendship-garden-27973",
+            storageBucket: "friendship-garden-27973.firebasestorage.app",
+            messagingSenderId: "82553206205",
+            appId: "1:82553206205:web:87580d33646d26a5568ed4"
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
         let currentUser = null;
 
         // Auth UI
@@ -244,9 +313,13 @@
         const userEmail = document.getElementById('userEmail');
 
         // Authentication listeners
-        loginButton.addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider);
+        loginButton.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error('Error signing in:', error);
+            }
         });
 
         logoutButton.addEventListener('click', () => {
@@ -256,11 +329,13 @@
         auth.onAuthStateChanged(user => {
             currentUser = user;
             if (user) {
+                document.body.classList.add('logged-in');
                 loginButton.style.display = 'none';
                 logoutButton.style.display = 'inline';
                 userEmail.textContent = user.email;
                 loadGarden(); // Load user's garden
             } else {
+                document.body.classList.remove('logged-in');
                 loginButton.style.display = 'inline';
                 logoutButton.style.display = 'none';
                 userEmail.textContent = '';
@@ -473,7 +548,7 @@
 
 
         // Save the garden state to localStorage
-        function saveGarden() {
+        async function saveGarden() {
             if (!currentUser) return;
 
             const plants = Array.from(document.querySelectorAll('.plant')).map(plant => ({
@@ -492,10 +567,10 @@
                 top: label.style.top
             }));
 
-            db.collection('gardens').doc(currentUser.uid).set({
+            await setDoc(doc(db, 'gardens', currentUser.uid), {
                 plants,
                 labels,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                lastUpdated: serverTimestamp()
             });
         }
 
@@ -503,9 +578,10 @@
         async function loadGarden() {
             if (!currentUser) return;
 
-            const doc = await db.collection('gardens').doc(currentUser.uid).get();
-            if (doc.exists) {
-                const data = doc.data();
+            const docRef = doc(db, 'gardens', currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
                 garden.innerHTML = ''; // Clear existing garden
                 data.plants.forEach(plant => addPlant(plant.name, plant.level, plant.left, plant.top, plant.lastWatered, plant.waterCount));
                 data.labels.forEach(label => addLabel(label.text, parseFloat(label.left), parseFloat(label.top)));
@@ -625,6 +701,7 @@
 
         // Update plant health every minute
         setInterval(updatePlantHealth, 60000);
+        
     </script>
 </body>
 </html>
