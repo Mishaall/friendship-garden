@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Garden Friendship App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #273d17; /* Set the background color */
+            background-image: url('./background.png'); /* Added ./ to explicitly look in current directory */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        #garden {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            border: 2px solid #ffedda; /* Update border color here */
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        /* Updated button styles */
+        button {
+            background-color: #ffedda; /* Button background color */
+            color: #273d17; /* Button text color */
+            border: none; /* Remove default border */
+            padding: 8px 16px; /* Make the buttons slightly smaller */
+            font-size: 14px; /* Slightly smaller font size */
+            font-weight: bold; /* Bold the text */
+            cursor: pointer; /* Cursor style */
+            border-radius: 10px; /* Rounded edges */
+            margin: 5px; /* Spacing between buttons */
+            transition: background-color 0.3s ease; /* Smooth hover effect */
+        }
+
+        button:hover {
+            background-color: #e6d6b9; /* Darken button on hover */
+        }
+
+        button:focus {
+            outline: none; /* Remove outline when focused */
+        }
+
+        button.active-button {
+            background-color: #4CAF50; /* Active button background */
+            color: white;
+        }
+                /* Update Friend Name input field */
+        #friendName {
+            background-color: #ffedda; /* Match button background color */
+            color: #273d17; /* Match button text color */
+            border: 2px solid #273d17; /* Keep the defined borders for input */
+            padding: 8px; /* Adjust padding for consistency */
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px; /* Keep it slightly less rounded */
+            width: 200px; /* Set a fixed width if needed */
+        }
+
+        /* Update Maintenance Level dropdown */
+        #maintenanceLevel {
+            background-color: #ffedda; /* Match button background color */
+            color: #273d17; /* Match button text color */
+            border: 2px solid #273d17; /* Keep the border */
+            padding: 8px; /* Adjust padding for consistency */
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px; /* Keep it slightly less rounded */
+            cursor: pointer;
+        }
+
+        /* Hover and focus effects for input and select */
+        #friendName:hover, #maintenanceLevel:hover {
+            background-color: #e6d6b9; /* Slightly darker on hover */
+        }
+
+        #friendName:focus, #maintenanceLevel:focus {
+            outline: none; /* Remove the default outline */
+            border-color: #4CAF50; /* Change border color on focus */
+        }
+        
+        .plant {
+            position: absolute;
+            font-size: 24px;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .plant-name {
+            font-size: 13px;
+            text-align: center;
+            color: #ffedda; /* Set the color to #ffedda */
+            font-weight: bold; /* Make the text bold */
+            margin-top: 5px; /* Add some space between the emoji and name */
+        }
+        #addFriendForm, #gardenControls {
+            margin-bottom: 20px;
+        }
+        .water-animation {
+            position: absolute;
+            font-size: 24px;
+            animation: waterDrop 1s ease-out;
+            pointer-events: none;
+        }
+        @keyframes waterDrop {
+            0% { transform: translateY(-20px); opacity: 1; }
+            100% { transform: translateY(0); opacity: 0; }
+        }
+        .label {
+            background-color: #273d17; /* Set the background color to #ffedda */
+            color: #273d17; /* Set the text color to #273d17 */
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 5px; /* Add rounded corners if desired */
+            padding: 5px 10px; /* Add padding for the label */
+            cursor: move; /* Make the label draggable */
+            display: inline-block;
+        }
+
+        .label input {
+            font-size: 12px;
+            background-color: #e8b24d; /* Set background color */
+            color: #273d17; /* Set text color */
+            font-weight: bold; /* Bold the text */
+            border: none; /* Remove borders */
+            padding: 5px;
+            border-radius: 5px;
+            width: 100px;
+        }
+        .extra-health {
+            position: absolute;
+            font-size: 16px;
+            top: -20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+        }
+        .active-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #gardenOverview {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+        #gardenOverview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #gardenOverview th, #gardenOverview td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #gardenOverview th {
+            background-color: #f2f2f2;
+        }
+        #closeOverview {
+            cursor: pointer;
+            float: right;
+            font-size: 20px;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div id="loginSection" style="text-align: center; margin: 20px;">
+        <button id="loginButton" style="display: none;">Login with Google</button>
+        <button id="logoutButton" style="display: none;">Logout</button>
+        <span id="userEmail" style="margin-left: 10px;"></span>
+    </div>    
+    <form id="addFriendForm">
+        <input type="text" id="friendName" placeholder="Friend's Name" required>
+        <select id="maintenanceLevel" required>
+            <option value="">Select Maintenance Level</option>
+            <option value="high">🌷 High (3 days)</option>
+            <option value="medium">🪻 Medium (7 days)</option>
+            <option value="medium-low">🌻 Medium-Low (14 days)</option>
+            <option value="low">🌵 Low (30 days)</option>
+        </select>
+        <button type="submit">Add Friend</button>
+    </form>
+    <div id="gardenControls">
+        <button id="waterButton">Water Plant</button>
+        <button id="organizeButton">Add Label</button>
+        <button id="pruneButton">Prune Plant</button>
+        <button id="undoButton" disabled>Undo</button>
+        <button id="overviewButton">Garden Overview</button>
+    </div>
+    <div id="gardenOverview">
+        <span id="closeOverview">&times;</span>
+        <h2>Garden Overview</h2>
+        <table id="plantTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Last Watered</th>
+                    <th>Health Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="garden"></div>
+
+    <script>
+            // Add Firebase initialization HERE, right at the start of your script tag
+        const firebaseConfig = {
+            // You'll fill this in with your Firebase config later
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+
+        // Auth UI
+        const loginButton = document.getElementById('loginButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const userEmail = document.getElementById('userEmail');
+
+        // Authentication listeners
+        loginButton.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider);
+        });
+
+        logoutButton.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        auth.onAuthStateChanged(user => {
+            currentUser = user;
+            if (user) {
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline';
+                userEmail.textContent = user.email;
+                loadGarden(); // Load user's garden
+            } else {
+                loginButton.style.display = 'inline';
+                logoutButton.style.display = 'none';
+                userEmail.textContent = '';
+                garden.innerHTML = ''; // Clear garden when logged out
+            }
+        });
+    // ... rest of your existing code
+        const garden = document.getElementById('garden');
+        const addFriendForm = document.getElementById('addFriendForm');
+        const waterButton = document.getElementById('waterButton');
+        const organizeButton = document.getElementById('organizeButton');
+        const pruneButton = document.getElementById('pruneButton');
+        const undoButton = document.getElementById('undoButton');
+        const overviewButton = document.getElementById('overviewButton');
+        const gardenOverview = document.getElementById('gardenOverview');
+        const closeOverview = document.getElementById('closeOverview');
+        const plantTable = document.getElementById('plantTable').querySelector('tbody');
+
+        let currentMode = 'normal';
+        let lastAction = null;
+
+        const plantTypes = {
+            high: { emoji: '🌷', days: 3 },
+            medium: { emoji: '🪻', days: 7 },
+            'medium-low': { emoji: '🌻', days: 14 },
+            low: { emoji: '🌵', days: 30 }
+        };
+
+        // Add a plant to the garden
+        function addPlant(name, level, left = null, top = null, lastWatered = null, waterCount = 0) {
+            const plant = document.createElement('div');
+            plant.className = 'plant';
+            plant.id = 'plant_' + Date.now(); // Unique ID for each plant
+            plant.innerHTML = `${plantTypes[level].emoji}<div class="plant-name">${name}</div><div class="extra-health"></div>`;
+            plant.style.left = left || `${Math.random() * 90}%`;
+            plant.style.top = top || `${Math.random() * 90}%`;
+            plant.dataset.level = level;
+            plant.dataset.lastWatered = lastWatered || Date.now();
+            plant.dataset.waterCount = waterCount;
+            garden.appendChild(plant);
+            makeDraggable(plant);
+            updatePlantHealth();
+            saveGarden();
+            setLastAction('add', { element: plant });
+        }
+
+        // Submit form to add a new plant
+        addFriendForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('friendName').value;
+            const level = document.getElementById('maintenanceLevel').value;
+            addPlant(name, level);
+            this.reset();
+        });
+
+        // Set mode (water, organize, prune)
+        function setMode(mode) {
+            currentMode = mode;
+            document.body.style.cursor = 'default';
+            [waterButton, organizeButton, pruneButton].forEach(btn => btn.classList.remove('active-button'));
+            
+            switch (mode) {
+                case 'water':
+                    document.body.style.cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><text x=\'0\' y=\'20\'>💧</text></svg>"), auto';
+                    waterButton.classList.add('active-button');
+                    break;
+                case 'organize':
+                    document.body.style.cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><text x=\'0\' y=\'20\'>🏷️</text></svg>"), auto';
+                    organizeButton.classList.add('active-button');
+                    break;
+                case 'prune':
+                    document.body.style.cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><text x=\'0\' y=\'20\'>✂️</text></svg>"), auto';
+                    pruneButton.classList.add('active-button');
+                    break;
+            }
+        }
+
+        // Handle mode buttons
+        waterButton.addEventListener('click', () => setMode('water'));
+        organizeButton.addEventListener('click', () => setMode('organize'));
+        pruneButton.addEventListener('click', () => setMode('prune'));
+
+        // Water a plant
+        garden.addEventListener('click', function(e) {
+            switch (currentMode) {
+                case 'water':
+                    const plant = e.target.closest('.plant');
+                    if (plant) {
+                        waterPlant(plant);
+                        setMode('normal');
+                    }
+                    break;
+                case 'organize':
+                    if (!e.target.closest('.label') && !e.target.closest('.plant')) {
+                        addLabel('New Label', e.clientX - garden.offsetLeft, e.clientY - garden.offsetTop);
+                        setMode('normal');
+                    }
+                    break;
+                case 'prune':
+                    const plantToPrune = e.target.closest('.plant');
+                    if (plantToPrune) {
+                        prunePlant(plantToPrune);
+                        setMode('normal');
+                    }
+                    break;
+            }
+        });
+
+        function waterPlant(plant) {
+            const previousWaterCount = plant.dataset.waterCount;
+            const previousLastWatered = plant.dataset.lastWatered;
+            plant.dataset.lastWatered = Date.now();
+            plant.dataset.waterCount = parseInt(plant.dataset.waterCount) + 1;
+            const waterDrop = document.createElement('div');
+            waterDrop.className = 'water-animation';
+            waterDrop.textContent = '💦';
+            waterDrop.style.left = plant.style.left;
+            waterDrop.style.top = plant.style.top;
+            garden.appendChild(waterDrop);
+            setTimeout(() => waterDrop.remove(), 1000);
+            updatePlantHealth();
+            saveGarden();
+            setLastAction('water', { element: plant, previousWaterCount, previousLastWatered });
+        }
+
+        // Add a label
+        function addLabel(text, left = null, top = null) {
+            const label = document.createElement('div');
+            label.className = 'label';
+            label.innerHTML = `🏷️ <input type="text" value="${text}" class="label-text">`;
+            label.style.left = left ? `${left}px` : `${Math.random() * 90}%`; // Use saved or random position
+            label.style.top = top ? `${top}px` : `${Math.random() * 90}%`; // Use saved or random position
+            label.style.position = 'absolute'; // Ensure absolute positioning
+            garden.appendChild(label);
+            makeDraggable(label);
+            label.querySelector('input').addEventListener('change', saveGarden);
+            saveGarden();
+            setLastAction('addLabel', { element: label });
+        }
+
+
+        
+        // Prune a plant
+        function prunePlant(plant) {
+            garden.removeChild(plant);
+            saveGarden();
+            setLastAction('prune', { element: plant });
+        }
+
+        // Update the health of plants based on watering
+        function updatePlantHealth() {
+            const plants = document.querySelectorAll('.plant');
+            plants.forEach(plant => {
+                const level = plant.dataset.level;
+                const lastWatered = parseInt(plant.dataset.lastWatered);
+                const waterCount = parseInt(plant.dataset.waterCount);
+                const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
+                const upkeepPeriod = plantTypes[level].days;
+
+                if (daysSinceWatered > upkeepPeriod) {
+                    plant.firstChild.textContent = '🥀';
+                    plant.querySelector('.extra-health').textContent = '';
+                    plant.dataset.waterCount = 0;
+                } else {
+                    plant.firstChild.textContent = plantTypes[level].emoji;
+                    const extraHealthSparkles = Math.min(3, Math.floor(waterCount / 2));
+                    plant.querySelector('.extra-health').textContent = '✨'.repeat(extraHealthSparkles);
+                }
+            });
+            saveGarden();
+        }
+
+        // Make an element draggable
+        function makeDraggable(element) {
+        let isDragging = false;
+        let startX, startY;
+
+        element.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.clientX - element.offsetLeft;
+            startY = e.clientY - element.offsetTop;
+            element.style.zIndex = 1000;
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            let left = e.clientX - startX;
+            let top = e.clientY - startY;
+
+            // Constrain to garden boundaries
+            left = Math.max(0, Math.min(left, garden.clientWidth - element.offsetWidth));
+            top = Math.max(0, Math.min(top, garden.clientHeight - element.offsetHeight));
+
+            element.style.left = `${left}px`;
+            element.style.top = `${top}px`;
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            element.style.zIndex = '';
+            saveGarden(); // Save position after drag ends
+        }
+    }
+
+
+        // Save the garden state to localStorage
+        function saveGarden() {
+            if (!currentUser) return;
+
+            const plants = Array.from(document.querySelectorAll('.plant')).map(plant => ({
+                id: plant.id,
+                name: plant.querySelector('.plant-name').textContent,
+                level: plant.dataset.level,
+                left: plant.style.left,
+                top: plant.style.top,
+                lastWatered: plant.dataset.lastWatered,
+                waterCount: plant.dataset.waterCount
+            }));
+            
+            const labels = Array.from(document.querySelectorAll('.label')).map(label => ({
+                text: label.querySelector('input').value,
+                left: label.style.left,
+                top: label.style.top
+            }));
+
+            db.collection('gardens').doc(currentUser.uid).set({
+                plants,
+                labels,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // Load the garden state from localStorage
+        async function loadGarden() {
+            if (!currentUser) return;
+
+            const doc = await db.collection('gardens').doc(currentUser.uid).get();
+            if (doc.exists) {
+                const data = doc.data();
+                garden.innerHTML = ''; // Clear existing garden
+                data.plants.forEach(plant => addPlant(plant.name, plant.level, plant.left, plant.top, plant.lastWatered, plant.waterCount));
+                data.labels.forEach(label => addLabel(label.text, parseFloat(label.left), parseFloat(label.top)));
+            }
+        }
+
+
+        // Undo the last action
+        function setLastAction(action, details) {
+            lastAction = { action, details };
+            undoButton.disabled = false;
+        }
+
+        undoButton.addEventListener('click', function() {
+            if (!lastAction) return;
+
+            switch (lastAction.action) {
+                case 'add':
+                    garden.removeChild(lastAction.details.element);
+                    break;
+                case 'addLabel':
+                    garden.removeChild(lastAction.details.element);
+                    break;
+                case 'water':
+                    const plant = lastAction.details.element;
+                    plant.dataset.waterCount = lastAction.details.previousWaterCount;
+                    plant.dataset.lastWatered = lastAction.details.previousLastWatered;
+                    updatePlantHealth();
+                    break;
+                case 'prune':
+                    garden.appendChild(lastAction.details.element);
+                    break;
+            }
+
+            saveGarden();
+            lastAction = null;
+            undoButton.disabled = true;
+        });
+
+        // Set up the Garden Overview popup
+        overviewButton.addEventListener('click', function() {
+            gardenOverview.style.display = 'block';
+            populateGardenOverview();
+        });
+
+        closeOverview.addEventListener('click', function() {
+            gardenOverview.style.display = 'none';
+        });
+
+        // Populate the Garden Overview with plant data
+        function populateGardenOverview() {
+            plantTable.innerHTML = '';
+            const plants = document.querySelectorAll('.plant');
+            plants.forEach(plant => {
+                const row = plantTable.insertRow();
+                row.innerHTML = `
+                    <td><input type="text" value="${plant.querySelector('.plant-name').textContent}" data-plant-id="${plant.id}" data-field="name"></td>
+                    <td>
+                        <select data-plant-id="${plant.id}" data-field="type">
+                            ${Object.entries(plantTypes).map(([key, value]) => 
+                                `<option value="${key}" ${plant.dataset.level === key ? 'selected' : ''}>${value.emoji}</option>`
+                            ).join('')}
+                        </select>
+                    </td>
+                    <td><input type="datetime-local" value="${new Date(parseInt(plant.dataset.lastWatered)).toISOString().slice(0, 16)}" data-plant-id="${plant.id}" data-field="lastWatered"></td>
+                    <td>
+                        <select data-plant-id="${plant.id}" data-field="health">
+                            <option value="healthy" ${!plant.firstChild.textContent.includes('🥀') ? 'selected' : ''}>Healthy</option>
+                            <option value="wilting" ${plant.firstChild.textContent.includes('🥀') ? 'selected' : ''}>Wilting</option>
+                        </select>
+                    </td>
+                `;
+            });
+        }
+
+        // Update the plant details based on changes in the table
+        plantTable.addEventListener('change', function(event) {
+            const target = event.target;
+            const plantId = target.dataset.plantId;
+            const field = target.dataset.field;
+            const value = target.value;
+
+            if (plantId && field) {
+                updatePlant(plantId, field, value);
+            }
+        });
+
+        // Update plant details based on changes in the Garden Overview
+        function updatePlant(plantId, field, value) {
+            const plant = document.getElementById(plantId);
+            if (!plant) return;
+
+            switch (field) {
+                case 'name':
+                    plant.querySelector('.plant-name').textContent = value;
+                    break;
+                case 'type':
+                    plant.dataset.level = value;
+                    plant.firstChild.textContent = plantTypes[value].emoji;
+                    break;
+                case 'lastWatered':
+                    plant.dataset.lastWatered = new Date(value).getTime();
+                    break;
+                case 'health':
+                    if (value === 'wilting') {
+                        plant.firstChild.textContent = '🥀';
+                    } else {
+                        plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
+                    }
+                    break;
+            }
+            saveGarden();
+        }
+
+        // Load the garden when the page is loaded
+        loadGarden();
+
+        // Update plant health every minute
+        setInterval(updatePlantHealth, 60000);
+    </script>
+</body>
+</html>
