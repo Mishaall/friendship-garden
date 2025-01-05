@@ -153,7 +153,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: white;
+            background-color: #e8b24d;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
@@ -435,12 +435,13 @@
                     }
                     break;
                 case 'prune':
-                    const plantToPrune = e.target.closest('.plant');
-                    if (plantToPrune) {
-                        prunePlant(plantToPrune);
+                    const elementToPrune = e.target.closest('.plant') || e.target.closest('.label');
+                    if (elementToPrune) {
+                        prunePlant(elementToPrune);
                         setMode('normal');
                     }
                     break;
+
             }
         });
 
@@ -688,11 +689,14 @@
                 case 'health':
                     if (value === 'wilting') {
                         plant.firstChild.textContent = '🥀';
+                        plant.dataset.waterCount = "0"; // Reset water count when wilting
+                        plant.dataset.lastWatered = "0"; // Set last watered to 0 to maintain wilted state
                     } else {
                         plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
+                        plant.dataset.lastWatered = Date.now(); // Reset last watered time when recovering
                     }
                     break;
-            }
+                }
             saveGarden();
         }
 
