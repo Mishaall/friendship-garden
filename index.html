@@ -480,19 +480,24 @@
         function waterPlant(plant) {
             const previousWaterCount = plant.dataset.waterCount;
             const previousLastWatered = plant.dataset.lastWatered;
-            plant.dataset.lastWatered = Date.now();
-            plant.dataset.waterCount = parseInt(plant.dataset.waterCount) + 1;
-            const waterDrop = document.createElement('div');
-            waterDrop.className = 'water-animation';
-            waterDrop.textContent = '💦';
-            waterDrop.style.left = plant.style.left;
-            waterDrop.style.top = plant.style.top;
-            garden.appendChild(waterDrop);
-            setTimeout(() => waterDrop.remove(), 1000);
-            updatePlantHealth();
-            saveGarden();
-            setLastAction('water', { element: plant, previousWaterCount, previousLastWatered });
+            
+            // Only update if not wilted (lastWatered !== "0")
+            if (plant.dataset.lastWatered !== "0") {
+                plant.dataset.lastWatered = Date.now().toString();
+                plant.dataset.waterCount = (parseInt(plant.dataset.waterCount) + 1).toString();
+                const waterDrop = document.createElement('div');
+                waterDrop.className = 'water-animation';
+                waterDrop.textContent = '💦';
+                waterDrop.style.left = plant.style.left;
+                waterDrop.style.top = plant.style.top;
+                garden.appendChild(waterDrop);
+                setTimeout(() => waterDrop.remove(), 1000);
+                updatePlantHealth();
+                saveGarden();
+                setLastAction('water', { element: plant, previousWaterCount, previousLastWatered });
+            }
         }
+
 
         // Add a label
         function addLabel(text, left = null, top = null) {
@@ -520,26 +525,28 @@
 
         // Update the health of plants based on watering
         function updatePlantHealth() {
-            const plants = document.querySelectorAll('.plant');
-            plants.forEach(plant => {
-                const level = plant.dataset.level;
-                const lastWatered = parseInt(plant.dataset.lastWatered);
-                const waterCount = parseInt(plant.dataset.waterCount);
-                const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
-                const upkeepPeriod = plantTypes[level].days;
+        const plants = document.querySelectorAll('.plant');
+        plants.forEach(plant => {
+            const level = plant.dataset.level;
+            const lastWatered = parseInt(plant.dataset.lastWatered);
+            const waterCount = parseInt(plant.dataset.waterCount);
+            const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
+            const upkeepPeriod = plantTypes[level].days;
 
-                if (daysSinceWatered > upkeepPeriod) {
-                    plant.firstChild.textContent = '🥀';
-                    plant.querySelector('.extra-health').textContent = '';
-                    plant.dataset.waterCount = 0;
-                } else {
-                    plant.firstChild.textContent = plantTypes[level].emoji;
-                    const extraHealthSparkles = Math.min(3, Math.floor(waterCount / 2));
-                    plant.querySelector('.extra-health').textContent = '✨'.repeat(extraHealthSparkles);
-                }
-            });
-            saveGarden();
-        }
+            if (daysSinceWatered > upkeepPeriod) {
+                plant.firstChild.textContent = '🥀';
+                plant.querySelector('.extra-health').textContent = '';
+                plant.dataset.waterCount = "0";  // Added quotes
+                plant.dataset.lastWatered = "0"; // Added this line to maintain wilted state
+            } else {
+                plant.firstChild.textContent = plantTypes[level].emoji;
+                const extraHealthSparkles = Math.min(3, Math.floor(waterCount / 2));
+                plant.querySelector('.extra-health').textContent = '✨'.repeat(extraHealthSparkles);
+            }
+        });
+        saveGarden();
+    }
+
 
         // Make an element draggable
         function makeDraggable(element) {
@@ -716,19 +723,21 @@
                     plant.firstChild.textContent = plantTypes[value].emoji;
                     break;
                 case 'lastWatered':
-                    plant.dataset.lastWatered = new Date(value).getTime();
+                    // Convert to local timezone when setting the date
+                    const localDate = new Date(value);
+                    plant.dataset.lastWatered = localDate.getTime().toString();
                     break;
                 case 'health':
                     if (value === 'wilting') {
                         plant.firstChild.textContent = '🥀';
-                        plant.dataset.waterCount = "0"; // Reset water count when wilting
-                        plant.dataset.lastWatered = "0"; // Set last watered to 0 to maintain wilted state
+                        plant.dataset.waterCount = "0";
+                        plant.dataset.lastWatered = "0"; // This will keep it wilted
                     } else {
                         plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
-                        plant.dataset.lastWatered = Date.now(); // Reset last watered time when recovering
+                        plant.dataset.lastWatered = Date.now().toString(); // Reset last watered time when recovering
                     }
                     break;
-                }
+            }
             saveGarden();
         }
 
