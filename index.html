@@ -525,27 +525,30 @@
 
         // Update the health of plants based on watering
         function updatePlantHealth() {
-        const plants = document.querySelectorAll('.plant');
-        plants.forEach(plant => {
-            const level = plant.dataset.level;
-            const lastWatered = parseInt(plant.dataset.lastWatered);
-            const waterCount = parseInt(plant.dataset.waterCount);
-            const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
-            const upkeepPeriod = plantTypes[level].days;
+            const plants = document.querySelectorAll('.plant');
+            plants.forEach(plant => {
+                if (plant.dataset.lastWatered === "0") {
+                    // If already wilted, keep it wilted
+                    setPlantToWilted(plant);
+                    return;
+                }
 
-            if (daysSinceWatered > upkeepPeriod) {
-                plant.firstChild.textContent = '🥀';
-                plant.querySelector('.extra-health').textContent = '';
-                plant.dataset.waterCount = "0";  // Added quotes
-                plant.dataset.lastWatered = "0"; // Added this line to maintain wilted state
-            } else {
-                plant.firstChild.textContent = plantTypes[level].emoji;
-                const extraHealthSparkles = Math.min(3, Math.floor(waterCount / 2));
-                plant.querySelector('.extra-health').textContent = '✨'.repeat(extraHealthSparkles);
-            }
-        });
-        saveGarden();
-    }
+                const level = plant.dataset.level;
+                const lastWatered = parseInt(plant.dataset.lastWatered);
+                const waterCount = parseInt(plant.dataset.waterCount);
+                const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
+                const upkeepPeriod = plantTypes[level].days;
+
+                if (daysSinceWatered > upkeepPeriod) {
+                    setPlantToWilted(plant);
+                } else {
+                    const extraHealthSparkles = Math.min(3, Math.floor(waterCount / 2));
+                    plant.firstChild.textContent = plantTypes[level].emoji;
+                    plant.querySelector('.extra-health').textContent = '✨'.repeat(extraHealthSparkles);
+                }
+            });
+            saveGarden();
+        }
 
 
         // Make an element draggable
@@ -726,7 +729,10 @@
                     break;
                 case 'type':
                     plant.dataset.level = value;
-                    plant.firstChild.textContent = plantTypes[value].emoji;
+                    const isCurrentlyWilted = plant.firstChild.textContent === '🥀';
+                    if (!isCurrentlyWilted) {
+                        plant.firstChild.textContent = plantTypes[value].emoji;
+                    }
                     break;
                 case 'lastWatered':
                     const localDate = new Date(value);
@@ -734,26 +740,17 @@
                     const upkeepPeriod = plantTypes[plant.dataset.level].days;
                     
                     if (daysSinceWatered > upkeepPeriod) {
-                        // Set to wilted state
-                        plant.firstChild.textContent = '🥀';
-                        plant.dataset.waterCount = "0";
-                        plant.dataset.lastWatered = "0";
-                        plant.querySelector('.extra-health').textContent = '';
+                        setPlantToWilted(plant);
                     } else {
-                        // Set to healthy state with new date
                         plant.dataset.lastWatered = localDate.getTime().toString();
-                        plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
-                        updatePlantHealth();
+                        setPlantToHealthy(plant);
                     }
                     break;
                 case 'health':
                     if (value === 'wilting') {
                         setPlantToWilted(plant);
                     } else {
-                        plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
-                        plant.dataset.lastWatered = Date.now().toString();
-                        plant.dataset.waterCount = "0";
-                        updatePlantHealth();
+                        setPlantToHealthy(plant);
                     }
                     break;
             }
@@ -765,6 +762,12 @@
             plant.dataset.lastWatered = "0";
             plant.querySelector('.extra-health').textContent = '';
             saveGarden();
+        }
+        function setPlantToHealthy(plant) {
+            plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
+            plant.dataset.waterCount = "0";
+            plant.dataset.lastWatered = Date.now().toString();
+            plant.querySelector('.extra-health').textContent = '';
         }
 
         // Load the garden when the page is loaded
