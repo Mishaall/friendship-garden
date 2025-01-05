@@ -28,16 +28,30 @@
 
         #garden {
             position: relative;
-            width: 90%;  /* Changed from 100% to 90% */
+            width: 95%;            /* Adjusted for better default width */
+            max-width: 1440px;     /* Back to your MacBook width */
             height: 80vh;
-            border: 2px solid #ffedda;
+            border: 2px solid rgba(255, 237, 218, 0.6);  /* Made border translucent */
             border-radius: 10px;
             overflow: hidden;
             margin: 0 auto;
-            min-height: 500px;  /* Added minimum height */
-            max-height: 900px;  /* Added maximum height */
-            min-width: 300px;   /* Added minimum width */
-            max-width: 90vw;    /* Changed from fixed 1440px to 90% of viewport width */
+            min-height: 500px;
+            box-shadow: 0 0 10px rgba(39, 61, 23, 0.3);  /* Added subtle shadow */
+            backdrop-filter: blur(2px);  /* Slight blur behind the border */
+        }
+
+        /* Add media queries for better scaling */
+        @media screen and (max-width: 768px) {
+            #garden {
+                width: 98%;
+                min-height: 400px;
+            }
+        }
+
+        @media screen and (min-width: 1440px) {
+            #garden {
+                width: 1440px;  /* Fixed width for large screens */
+            }
         }
 
         
