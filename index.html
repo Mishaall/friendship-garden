@@ -12,7 +12,6 @@
             width: 100%;
             overflow: auto;
         }
-
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
@@ -21,21 +20,24 @@
             background-position: center;
             background-repeat: no-repeat;
             background-attachment: fixed;
-            background-size: 1440px 900px;  /* Set to your MacBook's resolution */
-            display: flex;
-            flex-direction: column;
+            background-size: cover;  /* Changed this */
             min-height: 100vh;
-            box-sizing: border-box;
+            width: 100%;
+            position: relative;  /* Added this */
+            overflow-x: hidden;  /* Added this */
         }
         
         #garden {
             position: relative;
             width: 100%;
+            max-width: 1440px;  /* Added this - matches your design width */
             height: 80vh;
-            border: 2px solid #ffedda; /* Update border color here */
+            border: 2px solid #ffedda;
             border-radius: 10px;
             overflow: hidden;
+            margin: 0 auto;  /* Added this to center the garden */
         }
+
         
         /* Updated button styles */
         button {
