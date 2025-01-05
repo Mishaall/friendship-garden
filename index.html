@@ -663,7 +663,7 @@
             lastAction = null;
             undoButton.disabled = true;
         });
-
+        
         // Set up the Garden Overview popup
         overviewButton.addEventListener('click', function() {
             gardenOverview.style.display = 'block';
@@ -673,18 +673,23 @@
         closeOverview.addEventListener('click', function() {
             gardenOverview.style.display = 'none';
         });
+        function checkWiltingStatus(plant) {
+            if (plant.dataset.lastWatered === "0") return true; // Already wilted
+            
+            const lastWatered = parseInt(plant.dataset.lastWatered);
+            const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
+            const upkeepPeriod = plantTypes[plant.dataset.level].days;
+            
+            return daysSinceWatered > upkeepPeriod;
+        }
 
         // Populate the Garden Overview with plant data
         function populateGardenOverview() {
             plantTable.innerHTML = '';
             const plants = document.querySelectorAll('.plant');
             plants.forEach(plant => {
-                // Calculate if plant should be wilted
-                const lastWatered = parseInt(plant.dataset.lastWatered);
-                const daysSinceWatered = lastWatered === 0 ? Infinity : (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
-                const upkeepPeriod = plantTypes[plant.dataset.level].days;
-                const isWilted = daysSinceWatered > upkeepPeriod || lastWatered === 0;
-
+                const isWilted = plant.firstChild.textContent === '🥀' || checkWiltingStatus(plant);
+                
                 const row = plantTable.insertRow();
                 row.innerHTML = `
                     <td><input type="text" value="${plant.querySelector('.plant-name').textContent}" data-plant-id="${plant.id}" data-field="name"></td>
@@ -697,7 +702,7 @@
                     </td>
                     <td><input type="datetime-local" value="${new Date(parseInt(plant.dataset.lastWatered)).toISOString().slice(0, 16)}" data-plant-id="${plant.id}" data-field="lastWatered"></td>
                     <td>
-                        <select data-plant-id="${plant.id}" data-field="health">
+                        <select data-plant-id="${plant.id}" data-field="health" ${isWilted ? 'selected' : ''}>
                             <option value="healthy" ${!isWilted ? 'selected' : ''}>Healthy</option>
                             <option value="wilting" ${isWilted ? 'selected' : ''}>Wilting</option>
                         </select>
@@ -736,14 +741,20 @@
                     break;
                 case 'lastWatered':
                     const localDate = new Date(value);
-                    const daysSinceWatered = (Date.now() - localDate.getTime()) / (1000 * 60 * 60 * 24);
+                    plant.dataset.lastWatered = localDate.getTime().toString();
+                    
+                    // Immediately check if this should cause wilting
+                    const currentTime = Date.now();
+                    const daysSinceWatered = (currentTime - localDate.getTime()) / (1000 * 60 * 60 * 24);
                     const upkeepPeriod = plantTypes[plant.dataset.level].days;
                     
                     if (daysSinceWatered > upkeepPeriod) {
                         setPlantToWilted(plant);
                     } else {
-                        plant.dataset.lastWatered = localDate.getTime().toString();
-                        setPlantToHealthy(plant);
+                        // Only update if not already wilted
+                        if (plant.firstChild.textContent === '🥀') {
+                            setPlantToHealthy(plant);
+                        }
                     }
                     break;
                 case 'health':
@@ -757,17 +768,26 @@
             saveGarden();
         }
         function setPlantToWilted(plant) {
-            plant.firstChild.textContent = '🥀';
-            plant.dataset.waterCount = "0";
-            plant.dataset.lastWatered = "0";
-            plant.querySelector('.extra-health').textContent = '';
+            const id = plant.id; // Store the ID to make sure we're updating the right plant
+            const targetPlant = document.getElementById(id);
+            if (targetPlant) {
+                targetPlant.firstChild.textContent = '🥀';
+                targetPlant.dataset.waterCount = "0";
+                targetPlant.dataset.lastWatered = "0";
+                targetPlant.querySelector('.extra-health').textContent = '';
+            }
             saveGarden();
         }
+
         function setPlantToHealthy(plant) {
-            plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
-            plant.dataset.waterCount = "0";
-            plant.dataset.lastWatered = Date.now().toString();
-            plant.querySelector('.extra-health').textContent = '';
+            const id = plant.id; // Store the ID to make sure we're updating the right plant
+            const targetPlant = document.getElementById(id);
+            if (targetPlant) {
+                targetPlant.firstChild.textContent = plantTypes[targetPlant.dataset.level].emoji;
+                targetPlant.dataset.waterCount = "0";
+                targetPlant.dataset.lastWatered = Date.now().toString();
+                targetPlant.querySelector('.extra-health').textContent = '';
+            }
         }
 
         // Load the garden when the page is loaded
