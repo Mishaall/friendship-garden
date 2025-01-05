@@ -730,29 +730,40 @@
                     break;
                 case 'lastWatered':
                     const localDate = new Date(value);
-                    plant.dataset.lastWatered = localDate.getTime().toString();
-                    // Check if the new date would cause wilting
                     const daysSinceWatered = (Date.now() - localDate.getTime()) / (1000 * 60 * 60 * 24);
                     const upkeepPeriod = plantTypes[plant.dataset.level].days;
+                    
                     if (daysSinceWatered > upkeepPeriod) {
+                        // Set to wilted state
                         plant.firstChild.textContent = '🥀';
                         plant.dataset.waterCount = "0";
                         plant.dataset.lastWatered = "0";
+                        plant.querySelector('.extra-health').textContent = '';
+                    } else {
+                        // Set to healthy state with new date
+                        plant.dataset.lastWatered = localDate.getTime().toString();
+                        plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
+                        updatePlantHealth();
                     }
                     break;
                 case 'health':
                     if (value === 'wilting') {
-                        plant.firstChild.textContent = '🥀';
-                        plant.dataset.waterCount = "0";
-                        plant.dataset.lastWatered = "0";
-                        plant.querySelector('.extra-health').textContent = '';  // Clear any sparkles
+                        setPlantToWilted(plant);
                     } else {
                         plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
                         plant.dataset.lastWatered = Date.now().toString();
-                        updatePlantHealth();  // Update health immediately
+                        plant.dataset.waterCount = "0";
+                        updatePlantHealth();
                     }
                     break;
             }
+            saveGarden();
+        }
+        function setPlantToWilted(plant) {
+            plant.firstChild.textContent = '🥀';
+            plant.dataset.waterCount = "0";
+            plant.dataset.lastWatered = "0";
+            plant.querySelector('.extra-health').textContent = '';
             saveGarden();
         }
 
