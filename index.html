@@ -676,6 +676,12 @@
             plantTable.innerHTML = '';
             const plants = document.querySelectorAll('.plant');
             plants.forEach(plant => {
+                // Calculate if plant should be wilted
+                const lastWatered = parseInt(plant.dataset.lastWatered);
+                const daysSinceWatered = lastWatered === 0 ? Infinity : (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
+                const upkeepPeriod = plantTypes[plant.dataset.level].days;
+                const isWilted = daysSinceWatered > upkeepPeriod || lastWatered === 0;
+
                 const row = plantTable.insertRow();
                 row.innerHTML = `
                     <td><input type="text" value="${plant.querySelector('.plant-name').textContent}" data-plant-id="${plant.id}" data-field="name"></td>
@@ -689,8 +695,8 @@
                     <td><input type="datetime-local" value="${new Date(parseInt(plant.dataset.lastWatered)).toISOString().slice(0, 16)}" data-plant-id="${plant.id}" data-field="lastWatered"></td>
                     <td>
                         <select data-plant-id="${plant.id}" data-field="health">
-                            <option value="healthy" ${!plant.firstChild.textContent.includes('🥀') ? 'selected' : ''}>Healthy</option>
-                            <option value="wilting" ${plant.firstChild.textContent.includes('🥀') ? 'selected' : ''}>Wilting</option>
+                            <option value="healthy" ${!isWilted ? 'selected' : ''}>Healthy</option>
+                            <option value="wilting" ${isWilted ? 'selected' : ''}>Wilting</option>
                         </select>
                     </td>
                 `;
@@ -723,18 +729,27 @@
                     plant.firstChild.textContent = plantTypes[value].emoji;
                     break;
                 case 'lastWatered':
-                    // Convert to local timezone when setting the date
                     const localDate = new Date(value);
                     plant.dataset.lastWatered = localDate.getTime().toString();
+                    // Check if the new date would cause wilting
+                    const daysSinceWatered = (Date.now() - localDate.getTime()) / (1000 * 60 * 60 * 24);
+                    const upkeepPeriod = plantTypes[plant.dataset.level].days;
+                    if (daysSinceWatered > upkeepPeriod) {
+                        plant.firstChild.textContent = '🥀';
+                        plant.dataset.waterCount = "0";
+                        plant.dataset.lastWatered = "0";
+                    }
                     break;
                 case 'health':
                     if (value === 'wilting') {
                         plant.firstChild.textContent = '🥀';
                         plant.dataset.waterCount = "0";
-                        plant.dataset.lastWatered = "0"; // This will keep it wilted
+                        plant.dataset.lastWatered = "0";
+                        plant.querySelector('.extra-health').textContent = '';  // Clear any sparkles
                     } else {
                         plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
-                        plant.dataset.lastWatered = Date.now().toString(); // Reset last watered time when recovering
+                        plant.dataset.lastWatered = Date.now().toString();
+                        updatePlantHealth();  // Update health immediately
                     }
                     break;
             }
