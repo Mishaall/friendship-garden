@@ -725,54 +725,50 @@
             const value = target.value;
 
             if (plantId && field) {
-                updatePlant(plantId, field, value);
+                const plant = document.getElementById(plantId);
+                if (plant) {
+                    updatePlant(plant, field, value);
+                    updatePlantHealth(); // Trigger health update for consistent display
+                }
             }
         });
 
         // Update plant details based on changes in the Garden Overview
-        function updatePlant(plantId, field, value) {
-            const plant = document.getElementById(plantId);
-            if (!plant) return;
-
+        function updatePlant(plant, field, value) {
             switch (field) {
                 case 'name':
                     plant.querySelector('.plant-name').textContent = value;
                     break;
                 case 'type':
                     plant.dataset.level = value;
-                    const isCurrentlyWilted = plant.firstChild.textContent === '🥀';
-                    if (!isCurrentlyWilted) {
-                        plant.firstChild.textContent = plantTypes[value].emoji;
+                    if (plant.firstChild.textContent !== '🥀') {
+                        plant.firstChild.textContent = plantTypes[value].emoji; // Update emoji
                     }
                     break;
                 case 'lastWatered':
                     const localDate = new Date(value);
                     plant.dataset.lastWatered = localDate.getTime().toString();
-                    
-                    // Immediately check if this should cause wilting
-                    const currentTime = Date.now();
-                    const daysSinceWatered = (currentTime - localDate.getTime()) / (1000 * 60 * 60 * 24);
+
+                    const daysSinceWatered = (Date.now() - localDate.getTime()) / (1000 * 60 * 60 * 24);
                     const upkeepPeriod = plantTypes[plant.dataset.level].days;
-                    
+
                     if (daysSinceWatered > upkeepPeriod) {
                         setPlantToWilted(plant);
-                    } else {
-                        // Only update if not already wilted
-                        if (plant.firstChild.textContent === '🥀') {
-                            setPlantToHealthy(plant);
-                        }
+                    } else if (plant.dataset.wilted === "true") {
+                        setPlantToHealthy(plant);
                     }
                     break;
                 case 'health':
                     if (value === 'wilting') {
                         setPlantToWilted(plant);
-                    } else {
+                    } else if (value === 'healthy') {
                         setPlantToHealthy(plant);
                     }
                     break;
             }
-            saveGarden();
+            saveGarden(); // Save after every update
         }
+
 
         // Load the garden when the page is loaded
         loadGarden();
