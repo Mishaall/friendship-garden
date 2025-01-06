@@ -692,6 +692,13 @@
         closeOverview.addEventListener('click', function() {
             gardenOverview.style.display = 'none';
         });
+        function formatToLocalDatetime(timestamp) {
+            const localDate = new Date(parseInt(timestamp));
+            const offset = localDate.getTimezoneOffset() * 60000; // Convert minutes to milliseconds
+            const localISO = new Date(localDate.getTime() - offset).toISOString();
+            return localISO.slice(0, 16); // Format for `datetime-local` input
+        }
+
 
         // Populate the Garden Overview with plant data
         function populateGardenOverview() {
@@ -710,7 +717,7 @@
                             ).join('')}
                         </select>
                     </td>
-                    <td><input type="datetime-local" value="${new Date(parseInt(plant.dataset.lastWatered)).toISOString().slice(0, 16)}" data-plant-id="${plant.id}" data-field="lastWatered"></td>
+                    <td><input type="datetime-local" value="${formatToLocalDatetime(plant.dataset.lastWatered)}" data-plant-id="${plant.id}" data-field="lastWatered"></td>
                     <td>
                         <select data-plant-id="${plant.id}" data-field="health">
                             <option value="healthy" ${plant.dataset.wilted === "false" ? 'selected' : ''}>Healthy</option>
@@ -720,6 +727,7 @@
                 `;
             });
         }
+
 
         // Update the plant details based on changes in the table
                 plantTable.addEventListener('change', function (event) {
