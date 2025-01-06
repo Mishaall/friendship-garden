@@ -718,31 +718,32 @@
         }
 
         // Update the plant details based on changes in the table
-        plantTable.addEventListener('change', function(event) {
+        plantTable.addEventListener('change', function (event) {
             const target = event.target;
-            const plantId = target.dataset.plantId;
-            const field = target.dataset.field;
+            const plantId = target.dataset.plantId; // Ensure this maps uniquely to the plant
+            const field = target.dataset.field; // "name", "type", "lastWatered", or "health"
             const value = target.value;
 
             if (plantId && field) {
-                const plant = document.getElementById(plantId);
+                const plant = document.getElementById(plantId); // Ensure proper targeting
                 if (plant) {
-                    updatePlant(plant, field, value);
-                    updatePlantHealth(); // Trigger health update for consistent display
+                    updatePlant(plant, field, value); // Update the correct plant
+                    updatePlantHealth(); // Recalculate health and visual updates
                 }
             }
         });
+
 
         // Update plant details based on changes in the Garden Overview
         function updatePlant(plant, field, value) {
             switch (field) {
                 case 'name':
-                    plant.querySelector('.plant-name').textContent = value;
+                    plant.querySelector('.plant-name').textContent = value; // Update plant name
                     break;
                 case 'type':
-                    plant.dataset.level = value;
+                    plant.dataset.level = value; // Update maintenance level
                     if (plant.firstChild.textContent !== '🥀') {
-                        plant.firstChild.textContent = plantTypes[value].emoji; // Update emoji
+                        plant.firstChild.textContent = plantTypes[value].emoji; // Update emoji if not wilted
                     }
                     break;
                 case 'lastWatered':
@@ -753,21 +754,22 @@
                     const upkeepPeriod = plantTypes[plant.dataset.level].days;
 
                     if (daysSinceWatered > upkeepPeriod) {
-                        setPlantToWilted(plant);
+                        setPlantToWilted(plant); // Wilt if overdue
                     } else if (plant.dataset.wilted === "true") {
-                        setPlantToHealthy(plant);
+                        setPlantToHealthy(plant); // Restore if within limit
                     }
                     break;
                 case 'health':
                     if (value === 'wilting') {
-                        setPlantToWilted(plant);
+                        setPlantToWilted(plant); // Mark as wilting
                     } else if (value === 'healthy') {
-                        setPlantToHealthy(plant);
+                        setPlantToHealthy(plant); // Mark as healthy
                     }
                     break;
             }
-            saveGarden(); // Save after every update
+            saveGarden(); // Save state after updates
         }
+
 
 
         // Load the garden when the page is loaded
