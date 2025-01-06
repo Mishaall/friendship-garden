@@ -483,9 +483,14 @@
             const previousLastWatered = plant.dataset.lastWatered;
             
             // Only update if not wilted (lastWatered !== "0")
-            if (plant.dataset.lastWatered !== "0") {
-                plant.dataset.lastWatered = Date.now().toString();
-                plant.dataset.waterCount = (parseInt(plant.dataset.waterCount) + 1).toString();
+            if (plant.dataset.wilted === "true") {
+                    setPlantToHealthy(plant); // Restore wilted plant to healthy
+                } else {
+                    plant.dataset.lastWatered = Date.now().toString();
+                    plant.dataset.waterCount = (parseInt(plant.dataset.waterCount) + 1).toString();
+                }
+
+                // Visual feedback for watering
                 const waterDrop = document.createElement('div');
                 waterDrop.className = 'water-animation';
                 waterDrop.textContent = '💦';
@@ -493,11 +498,13 @@
                 waterDrop.style.top = plant.style.top;
                 garden.appendChild(waterDrop);
                 setTimeout(() => waterDrop.remove(), 1000);
+
+                // Update garden state
                 updatePlantHealth();
                 saveGarden();
-                setLastAction('water', { element: plant, previousWaterCount, previousLastWatered });
+                setLastAction('water', { element: plant });
+
             }
-        }
 
 
         // Add a label
@@ -553,12 +560,13 @@
 
         function setPlantToHealthy(plant) {
             plant.dataset.wilted = "false";
-            plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji;
-            plant.dataset.lastWatered = Date.now().toString();
-            plant.dataset.waterCount = "0";
-            plant.querySelector('.extra-health').textContent = '';
+            plant.firstChild.textContent = plantTypes[plant.dataset.level].emoji; // Reset to the correct emoji
+            plant.dataset.lastWatered = Date.now().toString(); // Reset last watered date
+            plant.dataset.waterCount = "0"; // Reset water count
+            plant.querySelector('.extra-health').textContent = ''; // Clear health sparkles
             saveGarden();
         }
+
 
 
         // Make an element draggable
