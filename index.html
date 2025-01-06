@@ -400,7 +400,7 @@
         function addPlant(name, level, left = null, top = null, lastWatered = null, waterCount = 0, wilted = "false") {
             const plant = document.createElement('div');
             plant.className = 'plant';
-            plant.id = 'plant_' + Date.now();
+            plant.id = 'plant_' + crypto.randomUUID();
             plant.innerHTML = `${plantTypes[level].emoji}<div class="plant-name">${name}</div><div class="extra-health"></div>`;
             plant.style.left = left || `${Math.random() * 90}%`;
             plant.style.top = top || `${Math.random() * 90}%`;
@@ -529,22 +529,18 @@
             const plants = document.querySelectorAll('.plant');
             plants.forEach(plant => {
                 if (plant.dataset.wilted === "true") return; // Skip if already wilted
-                
+
                 const level = plant.dataset.level;
                 const lastWatered = parseInt(plant.dataset.lastWatered);
-                const waterCount = parseInt(plant.dataset.waterCount);
                 const daysSinceWatered = (Date.now() - lastWatered) / (1000 * 60 * 60 * 24);
                 const upkeepPeriod = plantTypes[level].days;
 
                 if (daysSinceWatered > upkeepPeriod) {
                     setPlantToWilted(plant);
-                } else {
-                    const extraHealthSparkles = Math.min(3, Math.floor(waterCount / 2));
-                    plant.firstChild.textContent = plantTypes[level].emoji;
-                    plant.querySelector('.extra-health').textContent = '✨'.repeat(extraHealthSparkles);
                 }
             });
         }
+
 
         function setPlantToWilted(plant) {
             plant.dataset.wilted = "true";
@@ -708,9 +704,9 @@
                     </td>
                     <td><input type="datetime-local" value="${new Date(parseInt(plant.dataset.lastWatered)).toISOString().slice(0, 16)}" data-plant-id="${plant.id}" data-field="lastWatered"></td>
                     <td>
-                        <select data-plant-id="${plant.id}" data-field="health" ${isWilted ? 'selected' : ''}>
-                            <option value="healthy" ${!isWilted ? 'selected' : ''}>Healthy</option>
-                            <option value="wilting" ${isWilted ? 'selected' : ''}>Wilting</option>
+                        <select data-plant-id="${plant.id}" data-field="health">
+                            <option value="healthy" ${plant.dataset.wilted === "false" ? 'selected' : ''}>Healthy</option>
+                            <option value="wilting" ${plant.dataset.wilted === "true" ? 'selected' : ''}>Wilting</option>
                         </select>
                     </td>
                 `;
@@ -718,20 +714,20 @@
         }
 
         // Update the plant details based on changes in the table
-        plantTable.addEventListener('change', function (event) {
+                plantTable.addEventListener('change', function (event) {
             const target = event.target;
-            const plantId = target.dataset.plantId; // Ensure this maps uniquely to the plant
-            const field = target.dataset.field; // "name", "type", "lastWatered", or "health"
+            const plantId = target.dataset.plantId;
+            const field = target.dataset.field;
             const value = target.value;
 
             if (plantId && field) {
-                const plant = document.getElementById(plantId); // Ensure proper targeting
+                const plant = document.getElementById(plantId);
                 if (plant) {
-                    updatePlant(plant, field, value); // Update the correct plant
-                    updatePlantHealth(); // Recalculate health and visual updates
+                    updatePlant(plant, field, value); // Update the targeted plant
                 }
             }
         });
+
 
 
         // Update plant details based on changes in the Garden Overview
@@ -742,7 +738,7 @@
                     break;
                 case 'type':
                     plant.dataset.level = value; // Update maintenance level
-                    if (plant.firstChild.textContent !== '🥀') {
+                    if (plant.dataset.wilted === "false") {
                         plant.firstChild.textContent = plantTypes[value].emoji; // Update emoji if not wilted
                     }
                     break;
@@ -750,25 +746,27 @@
                     const localDate = new Date(value);
                     plant.dataset.lastWatered = localDate.getTime().toString();
 
+                    // Check if plant should wilt
                     const daysSinceWatered = (Date.now() - localDate.getTime()) / (1000 * 60 * 60 * 24);
                     const upkeepPeriod = plantTypes[plant.dataset.level].days;
 
                     if (daysSinceWatered > upkeepPeriod) {
-                        setPlantToWilted(plant); // Wilt if overdue
-                    } else if (plant.dataset.wilted === "true") {
-                        setPlantToHealthy(plant); // Restore if within limit
+                        setPlantToWilted(plant);
+                    } else {
+                        setPlantToHealthy(plant);
                     }
                     break;
                 case 'health':
                     if (value === 'wilting') {
                         setPlantToWilted(plant); // Mark as wilting
-                    } else if (value === 'healthy') {
+                    } else {
                         setPlantToHealthy(plant); // Mark as healthy
                     }
                     break;
             }
-            saveGarden(); // Save state after updates
+            saveGarden(); // Save the updated state
         }
+
 
 
 
